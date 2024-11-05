@@ -71,8 +71,7 @@ class FLL_MX(CR_MX):
 
     # Нахождение вектора собственных чисел
     def self_vector(self):
-        # print('self vector')
-        # print(f'{sum(self.mid_str())} aye')
+
         # Вызываем функцию среднего геометрического и делим на сумму всех средних геометрических
         return self.mid_str() / sum(self.mid_str())
 
@@ -98,33 +97,28 @@ class FLL_MX(CR_MX):
         рассчитываем собственные значения и критерий согласования
         :return:
         """
-        values_ = self.view_df()[self._names].to_numpy()
+        values_ = self.view_df().to_numpy()
         values_ = np.asmatrix(values_)
         n = len(values_)
         eigh = np.linalg.eigvals(values_)
-        print(eigh)
-        A = abs(eigh).max()
-        c = (A - n) / (n - 1)
+        #print(eigh)
+        lambda_max = abs(eigh).max()
+        c = (lambda_max - n) / (n - 1)
+        cii = c/INDEX_OF_APPROVMENT[f'{n}']
 
-        return c
+        return cii
 
     def result(self):
-        S = 0
+        A = self.view_df().to_numpy()
 
-        values_ = self.view_df()[self._names].to_numpy()
-        values_ = np.asmatrix(values_)
-        print(values_)
-        n1 = len(values_)
-        SE = np.zeros(n1)
-        for n in range(n1):
-            s = 0
+        eigenvalues, eigenvector = np.linalg.eig(A)
+        maxindex = np.argmax(eigenvalues)
+        eigenvalues = np.float32(eigenvalues)  # float32
+        eigenvector = np.float32(eigenvector)  # float32
+        weights = eigenvector[:, maxindex]
+        weights = weights / np.sum(weights)
 
-            for k in range(n1):
-                s = s + (values_[n, k])
-            S = S + s
-            SE[n] = s
-            SE = SE / S
-        return SE
+        return  weights
 
 
 if __name__ == '__main__':
@@ -138,9 +132,6 @@ if __name__ == '__main__':
     onexone = FLL_MX(names=None, data=None)
     onexone.excl_pd_df(names[0])
 
-    # рудимент
-    objects = [0 for _ in range(len(names))]
-
     # Создаем пустой словарь, для создания пары ключ - значение. Ключ - признак/название файла, значение - объект класса
     # где объект класса - Pandas DataFrame (табличное представление)
     objects_d = {}
@@ -152,7 +143,11 @@ if __name__ == '__main__':
 
     # Веса у оценки характеристик
     self_vectors = objects_d[names[0]].self_vector()
-
+    print(f'{'-' * 70}')
+    print(f'{'-' * 70}')
+    print('Первый вариант')
+    print(f'{'-' * 70}')
+    print(f'{'-' * 70}')
     print('Матрица оцененая по шкале относительной важности (Оценка критериев):')
     print(objects_d[names[0]].view_df())
     print('Собственный вектор: ')
@@ -179,15 +174,29 @@ if __name__ == '__main__':
     print(objects_d[names[4]].self_vector())
     print(f'{'-' * 70}')
     print('Обобщённая оценка вариантов относительно показателей')
-
     result = (self_vectors[0] * objects_d[names[1]].self_vector() + self_vectors[1] * objects_d[names[2]].self_vector()
               + self_vectors[2] * objects_d[names[3]].self_vector() + self_vectors[3] * objects_d[
                   names[4]].self_vector())
     print(result)
+    print(f'{'-' * 70}')
+    print(f'{'-' * 70}')
+    print('Второй вариант')
+    print(f'{'-' * 70}')
+    print(f'{'-' * 70}')
 
-    result_arr = []
-    # for name in names:
+    result_v2 = 0
+    ii = 1
+    for i in range(len(names)-1):
+        result_v2 += objects_d[names[i]].result()[i]*objects_d[names[ii]].result()
+        ii+=1
+    print(f'Результат работы второго варианта: {result_v2}')
 
-
-
-
+    fc = 0
+    for i in range(len(names)):
+        if objects_d[names[i]].harmony() > 0.1:
+            fc +=1
+    if fc > 1 :
+        print ('Число согласованности больше 0.1')
+    else:
+        print('Все хорошо')
+    print(f'{'-' * 70}')
